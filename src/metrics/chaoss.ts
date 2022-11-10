@@ -5,7 +5,8 @@ import {
   getMergedConfig,
   getRepoWhereClauseForClickhouse,
   getTimeRangeWhereClauseForClickhouse,
-  QueryConfig } from "./basic";
+  QueryConfig
+} from "./basic";
 import * as clickhouse from '../db/clickhouse';
 import { basicActivitySqlComponent } from "./indices";
 
@@ -39,7 +40,7 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, count ] = row;
+    const [id, name, count] = row;
     return {
       id,
       name,
@@ -64,12 +65,12 @@ export const chaossCodeChangeCommits = async (config: QueryConfig<CodeChangeComm
 SELECT
   id,
   argMax(name, time) AS name,
-  ${getGroupArrayInsertAtClauseForClickhouse(config, { key: 'commits_count', value:'count' })}
+  ${getGroupArrayInsertAtClauseForClickhouse(config, { key: 'commits_count', value: 'count' })}
 FROM
 (
   SELECT
     ${getGroupTimeAndIdClauseForClickhouse(config, 'repo')},
-    COUNT(arrayJoin(${config.options?.messageFilter ? `arrayFilter(x -> match(x, '${config.options.messageFilter}'), push_commits.message)` : 'push_commits.message' })) AS count
+    COUNT(arrayJoin(${config.options?.messageFilter ? `arrayFilter(x -> match(x, '${config.options.messageFilter}'), push_commits.message)` : 'push_commits.message'})) AS count
   FROM github_log.events
   WHERE ${whereClauses.join(' AND ')}
   GROUP BY id, time
@@ -82,7 +83,7 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, count ] = row;
+    const [id, name, count] = row;
     return {
       id,
       name,
@@ -100,8 +101,8 @@ export const chaossCodeChangeLines = async (config: QueryConfig<CodeChangeLinesO
   const whereClauses: string[] = ["type = 'PullRequestEvent' "];
   const repoWhereClause = getRepoWhereClauseForClickhouse(config);
   if (repoWhereClause) whereClauses.push(repoWhereClause);
-  whereClauses.push(getTimeRangeWhereClauseForClickhouse(config));  
-  
+  whereClauses.push(getTimeRangeWhereClauseForClickhouse(config));
+
   const sql = `
 SELECT
   id,
@@ -112,19 +113,19 @@ FROM
   SELECT
     ${getGroupTimeAndIdClauseForClickhouse(config, 'repo')},
     ${(() => {
-        if (by === 'add') {
-          return `
+      if (by === 'add') {
+        return `
           SUM(pull_additions) AS lines`
-        } else if (by === 'remove') {
-          return `
+      } else if (by === 'remove') {
+        return `
           SUM(pull_deletions) AS lines`
-        } else if (by === 'sum') {
-          return `
+      } else if (by === 'sum') {
+        return `
           SUM(pull_additions) AS additions,
           SUM(pull_deletions) AS deletions,
           minus(additions,deletions) AS lines
           ` }
-        })()}
+    })()}
     FROM github_log.events
     WHERE ${whereClauses.join(' AND ')}
     GROUP BY id, time
@@ -134,16 +135,16 @@ FROM
   GROUP BY id
   ${config.order ? `ORDER BY code_change_lines[-1] ${config.order}` : ''}
   FORMAT JSONCompact`;
-  
+
   const result: any = await clickhouse.query(sql);
-    return result.map(row => {
-      const [ id, name, lines ] = row;
-      return {
-        id,
-        name,
-        lines,
-      }
-    });
+  return result.map(row => {
+    const [id, name, lines] = row;
+    return {
+      id,
+      name,
+      lines,
+    }
+  });
 };
 
 // Evolution - Issue Resolution
@@ -177,13 +178,13 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, total_count, count ] = row;
+    const [id, name, total_count, count] = row;
     return {
       id,
       name,
       total_count,
       count,
-      ratio: count.map(v => `${(v*100/total_count).toPrecision(2)}%`),
+      ratio: count.map(v => `${(v * 100 / total_count).toPrecision(2)}%`),
     }
   });
 };
@@ -218,13 +219,13 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, total_count, count ] = row;
+    const [id, name, total_count, count] = row;
     return {
       id,
       name,
       total_count,
       count,
-      ratio: count.map(v => `${(v*100/total_count).toPrecision(2)}%`),
+      ratio: count.map(v => `${(v * 100 / total_count).toPrecision(2)}%`),
     }
   });
 };
@@ -239,15 +240,15 @@ export const chaossIssueResolutionDuration = async (config: QueryConfig<IssueRes
   const whereClauses: string[] = ["type = 'IssuesEvent'"];
   const repoWhereClause = getRepoWhereClauseForClickhouse(config);
   if (repoWhereClause) whereClauses.push(repoWhereClause);
-  
+
   const endDate = new Date(`${config.endYear}-${config.endMonth}-1`);
   endDate.setMonth(config.endMonth);  // find next month
-  
+
   let by = filterEnumType(config.options?.by, ['open', 'close'], 'open');
   const byCol = by === 'open' ? 'opened_at' : 'closed_at';
   let type = filterEnumType(config.options?.type, ['avg', 'median'], 'avg');
   let unit = filterEnumType(config.options?.unit, ['week', 'day', 'hour', 'minute'], 'day');
-  
+
   const sql = `
 SELECT
   id,
@@ -284,7 +285,7 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, resolution_duration ] = row;
+    const [id, name, resolution_duration] = row;
     return {
       id,
       name,
@@ -324,13 +325,13 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, total_count, count ] = row;
+    const [id, name, total_count, count] = row;
     return {
       id,
       name,
       total_count,
       count,
-      ratio: count.map(v => `${(v*100/total_count).toPrecision(2)}%`),
+      ratio: count.map(v => `${(v * 100 / total_count).toPrecision(2)}%`),
     }
   });
 };
@@ -365,13 +366,13 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, total_count, count ] = row;
+    const [id, name, total_count, count] = row;
     return {
       id,
       name,
       total_count,
       count,
-      ratio: count.map(v => `${(v*100/total_count).toPrecision(2)}%`),
+      ratio: count.map(v => `${(v * 100 / total_count).toPrecision(2)}%`),
     }
   });
 };
@@ -406,7 +407,7 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, count ] = row;
+    const [id, name, count] = row;
     return {
       id,
       name,
@@ -444,7 +445,7 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, count ] = row;
+    const [id, name, count] = row;
     return {
       id,
       name,
@@ -468,7 +469,7 @@ export const chaossBusFactor = async (config: QueryConfig<BusFactorOptions>) => 
   const whereClauses: string[] = [];
   if (by === 'commit') {
     whereClauses.push("type = 'PushEvent'")
-  } else if (by === 'change request' ) {
+  } else if (by === 'change request') {
     whereClauses.push("type = 'PullRequestEvent' AND action = 'closed' AND pull_merged = 1");
   } else if (by === 'activity') {
     whereClauses.push("type IN ('IssuesEvent', 'IssueCommentEvent', 'PullRequestEvent', 'PullRequestReviewCommentEvent')");
@@ -492,31 +493,31 @@ FROM
     any(name) AS name,
     SUM(count) AS total_contributions,
     length(detail) AS bus_factor,
-    arrayFilter(x -> tupleElement(x, 2) >= quantileExactWeighted(${config.options?.percentage ? (1 - config.options.percentage).toString() :  '0.5'})(count, count), arrayMap((x, y) -> (x, y), groupArray(${by === 'activity' ? 'actor_login': 'author' }), groupArray(count))) AS detail
+    arrayFilter(x -> tupleElement(x, 2) >= quantileExactWeighted(${config.options?.percentage ? (1 - config.options.percentage).toString() : '0.5'})(count, count), arrayMap((x, y) -> (x, y), groupArray(${by === 'activity' ? 'actor_login' : 'author'}), groupArray(count))) AS detail
   FROM
   (
     SELECT
       ${getGroupTimeAndIdClauseForClickhouse(config, 'repo')},
       ${(() => {
-        if (by === 'commit') {
-          return `
+      if (by === 'commit') {
+        return `
           arrayJoin(push_commits.name) AS author,
           COUNT() AS count`
-        } else if (by === 'change request') {
-          return `
+      } else if (by === 'change request') {
+        return `
           issue_author_id AS actor_id,
           argMax(issue_author_login, created_at) AS author,
           COUNT() AS count`
-        } else if (by === 'activity') {
-          return `
+      } else if (by === 'activity') {
+        return `
           ${basicActivitySqlComponent},
           toUInt32(ceil(activity)) AS count
           `
-        }
-      })()}
+      }
+    })()}
     FROM github_log.events
     WHERE ${whereClauses.join(' AND ')}
-    GROUP BY id, time, ${by === 'commit' ? 'author' : 'actor_id' }
+    GROUP BY id, time, ${by === 'commit' ? 'author' : 'actor_id'}
     ${(config.options?.withBot && by !== 'commit') ? '' : "HAVING " + (by === 'activity' ? 'actor_login' : 'author') + " NOT LIKE '%[bot]'"}
     ${config.order ? `ORDER BY count ${config.order}` : ''}
   )
@@ -529,7 +530,7 @@ FORMAT JSONCompact`;
 
   const result: any = await clickhouse.query(sql);
   return result.map(row => {
-    const [ id, name, bus_factor, detail, total_contributions ] = row;
+    const [id, name, bus_factor, detail, total_contributions] = row;
     return {
       id,
       name,
@@ -539,3 +540,96 @@ FORMAT JSONCompact`;
     }
   });
 };
+
+interface NewContributorsOptions {
+  // calculate bus factor by change request or git commit, or activity index. default: activity
+  by: 'commit' | 'change request';
+  withBot: boolean;
+}
+export const chaossNewContributors = async (config: QueryConfig<NewContributorsOptions>) => {
+  config = getMergedConfig(config);
+  const by = filterEnumType(config.options?.by, ['commit', 'change request'], 'change request');
+  const whereClauses: string[] = [];
+  const endDate = new Date(`${config.endYear}-${config.endMonth}-1`);
+  endDate.setMonth(config.endMonth);  // find next month
+  if (by === 'commit') {
+    whereClauses.push("type = 'PushEvent'")
+  } else if (by === 'change request') {
+    whereClauses.push("type = 'PullRequestEvent' AND action = 'closed' AND pull_merged = 1");
+  }
+  const repoWhereClause = getRepoWhereClauseForClickhouse(config);
+  if (repoWhereClause) whereClauses.push(repoWhereClause);
+  const sql = `
+SELECT
+  id,
+  argMax(name, time) AS name,
+  ${getGroupArrayInsertAtClauseForClickhouse(config, { key: 'new_contributors', })},
+  ${getGroupArrayInsertAtClauseForClickhouse(config, { key: 'detail' })}
+FROM
+(
+  SELECT
+  ${getGroupTimeAndIdClauseForClickhouse(config, 'repo', 'first_time')},
+    length(detail) AS new_contributors,
+    (arrayMap((x) -> (x), groupArray(author))) AS detail
+  FROM
+  (
+    SELECT
+      min(created_at) AS first_time,
+      repo_id,
+      argMax(repo_name,created_at) AS repo_name,
+      ${(() => {
+      if (by === 'commit') {
+        return `
+          author
+          `
+      } else if (by === 'change request') {
+        return `
+          actor_id,
+          argMax(author,created_at) AS author
+          `
+      }
+    })()}
+    FROM
+     (
+        SELECT 
+        repo_id,
+        repo_name,
+        ${(() => {
+      if (by === 'commit') {
+        return `
+          arrayJoin(push_commits.name) AS author
+          `
+      } else if (by === 'change request') {
+        return `
+          issue_author_id AS actor_id,
+          issue_author_login AS author
+          `
+      }
+    })()},
+        created_at
+        FROM github_log.events
+        WHERE ${whereClauses.join(' AND ')}
+        ${(config.options?.withBot && by !== 'commit') ? '' : "HAVING author NOT LIKE '%[bot]'"}
+      )
+    GROUP BY repo_id, ${by === 'commit' ? 'author' : 'actor_id'}
+    HAVING first_time >= toDate('${config.startYear}-${config.startMonth}-1') AND first_time < toDate('${endDate.getFullYear()}-${endDate.getMonth() + 1}-1')
+  )
+  GROUP BY id, time
+)
+GROUP BY id
+ORDER BY new_contributors[-1] ${config.order}
+${config.limit > 0 ? `LIMIT ${config.limit}` : ''}
+FORMAT JSONCompact`;
+
+  const result: any = await clickhouse.query(sql);
+  return result.map(row => {
+    const [id, name, new_contributors, detail] = row;
+    return {
+      id,
+      name,
+      new_contributors,
+      detail,
+    }
+  });
+}
+
